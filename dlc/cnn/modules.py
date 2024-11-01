@@ -1,3 +1,9 @@
+"""
+This file defines
+ - `ConvBlock2d` which is a single convolutional building block that can be used to build larger 
+ convolution networks.
+"""
+
 import torch.nn as nn
 
 class ConvBlock2d(nn.Module):
@@ -6,7 +12,7 @@ class ConvBlock2d(nn.Module):
     Includes a convolutional kernel, a LayerNorm and an activation function.
     
     The purpose of the LayerNorm is to stabilise and improve training dynamics [1]. LayerNorm 
-    normalises a given to mean 0, standard deviation 1.
+    normalises a given sample to mean 0, standard deviation 1.
     
     [1] Ba, J. L., Kiros, J. R., & Hinton, G. E. (2016). Layer normalization [arXiv preprint 
         arXiv:1607.06450]. arXiv. https://arxiv.org/abs/1607.06450
@@ -15,7 +21,7 @@ class ConvBlock2d(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        output_shape: tuple[int, int],
+        channel_shape: tuple[int, int],  # the shape of the last 2 dimensions
         kernel_size: int = 3,
         padding: int | None = None,
         stride: int = 1,
@@ -23,7 +29,7 @@ class ConvBlock2d(nn.Module):
         act: nn.Module = nn.ReLU,
     ):
         super().__init__()
-        assert kernel_size % 2 != 0  # ensure kernek_size is odd
+        assert kernel_size % 2 != 0  # ensure kernel_size is odd
 
         if padding is None:
             # compute the padding if it was not passed in
@@ -38,7 +44,8 @@ class ConvBlock2d(nn.Module):
                 stride=stride,
                 dilation=dilation
             ),
-            nn.LayerNorm((out_channels, *output_shape)),
+            # normalises over the last 3 dims, i.e, over each sample.
+            nn.LayerNorm((out_channels, *channel_shape)),
             act()
         )
 

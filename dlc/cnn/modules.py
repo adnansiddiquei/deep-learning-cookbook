@@ -1,22 +1,24 @@
 """
 This file defines
- - `ConvBlock2d` which is a single convolutional building block that can be used to build larger 
+ - `ConvBlock2d` which is a single convolutional building block that can be used to build larger
  convolution networks.
 """
 
 import torch.nn as nn
 
+
 class ConvBlock2d(nn.Module):
     """A simple 2D convolutional block.
 
     Includes a convolutional kernel, a LayerNorm and an activation function.
-    
-    The purpose of the LayerNorm is to stabilise and improve training dynamics [1]. LayerNorm 
+
+    The purpose of the LayerNorm is to stabilise and improve training dynamics [1]. LayerNorm
     normalises a given sample to mean 0, standard deviation 1.
-    
-    [1] Ba, J. L., Kiros, J. R., & Hinton, G. E. (2016). Layer normalization [arXiv preprint 
+
+    [1] Ba, J. L., Kiros, J. R., & Hinton, G. E. (2016). Layer normalization [arXiv preprint
         arXiv:1607.06450]. arXiv. https://arxiv.org/abs/1607.06450
     """
+
     def __init__(
         self,
         in_channels: int,
@@ -42,11 +44,11 @@ class ConvBlock2d(nn.Module):
                 kernel_size=kernel_size,
                 padding=padding,
                 stride=stride,
-                dilation=dilation
+                dilation=dilation,
             ),
             # normalises over the last 3 dims, i.e, over each sample.
             nn.LayerNorm((out_channels, *channel_shape)),
-            act()
+            act(),
         )
 
     def forward(self, x):

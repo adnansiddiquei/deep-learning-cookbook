@@ -100,11 +100,17 @@ Train the model.
 """
 
 if __name__ == '__main__':
+    # Create an instance of the model
     cnn_classifier = CNNClassifier()
+
+    # Create an instance of the Lightning module
     lit_cnn_classifier = LitCNNClassifier(model=cnn_classifier)
 
+    # Define the callbacks.
+    # Early stopping callback to stop the training when the val/loss doesn't increase for 3 epochs
     early_stopping_callback = EarlyStopping('val/loss', patience=3)
 
+    # Checkpointing callback to save the model with the lowest validation loss
     model_checkpoint_callback = ModelCheckpoint(
         dirpath='./mnist_classifier_checkpoints',
         filename='{epoch:02d}-{step}-min',
@@ -112,5 +118,6 @@ if __name__ == '__main__':
         save_top_k=1,
     )
 
+    # Start the training
     trainer = L.Trainer(max_epochs=100, callbacks=[early_stopping_callback, model_checkpoint_callback])
     trainer.fit(model=lit_cnn_classifier, train_dataloaders=train_loader, val_dataloaders=val_loader)

@@ -42,6 +42,9 @@ class ScaledDotProductSelfAttentionBlock(nn.Module):
         attention_weights.shape = [N, N]
         attention_weights[0] are the attentions paid to embedding 0, by every other embedding.
         attention_weights[0] is also normalised using the softmax, so it sums to 1.
+
+        The dot product here is what makes this block non-linear, and therefore removes the
+        requirement of an activation function.
         """
         attention_weights = F.softmax(
             (queries @ keys.T) / self.embedding_size**0.5, dim=-1

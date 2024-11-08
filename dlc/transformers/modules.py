@@ -168,3 +168,46 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         logging.info(f'output.shape = {output.shape}')
 
         return output
+
+
+class TransformerEncoderLayer(nn.Module):
+    """Implements the Transformer encoder layer as described in:
+     - Prince, S.J.D. (2024). Understanding Deep Learning: Ch. 12.4.
+     - Vaswani, A., et al. (2017). Attention is all you need. https://arxiv.org/pdf/1706.03762.
+
+    TransformerEncoderLayer is made up on a multi head self attn and feed forward layer.
+    """
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        num_heads: int,
+        ff_hidden_dim: int,
+        dropout: float = 0.1,
+    ):
+        super().__init__()
+
+        self.multi_head_attn = MultiHeadSelfAttentionBlock(
+            embedding_dim=embedding_dim, num_heads=num_heads
+        )
+        self.layer_norm_1 = nn.LayerNorm((embedding_dim,))
+
+        self.feed_forward = nn.Sequential(
+            nn.Linear(embedding_dim, ff_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(ff_hidden_dim, embedding_dim),
+        )
+        self.layer_norm_2 = nn.LayerNorm((embedding_dim,))
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: torch.Tensor):
+        # self attn block, with residual connection
+        x = self.multi_head_attn(x) + self.dropout(x)
+        x = self.layer_norm_1(x)
+
+        # feed forward block, with residual connection
+        x = self.feed_forward(x) + self.dropout(x)
+        x = self.layer_norm_2(x)
+
+        return x

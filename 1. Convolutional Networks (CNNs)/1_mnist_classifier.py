@@ -16,7 +16,7 @@ import pytorch_lightning as L
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-from dlc.cnn.modules import ConvBlock2d
+from dlc.cnn import ConvBlock2d
 
 device = (
     'cuda'

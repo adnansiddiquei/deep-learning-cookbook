@@ -20,52 +20,56 @@ class SelfAttentionBlock(nn.Module):
         self.keys_projection_layer = nn.Linear(embedding_dim, embedding_dim)
 
     def forward(self, x: torch.Tensor):
-        """Input tensor x.shape = [N, embedding_dim]"""
+        """For the sake of explanation, let us assume that
+        x.shape = (batch_size, sequence_length, embedding_dim) = (256, 512, 100)
+        """
         assert (
             x.shape[-1] == self.embedding_dim
         ), f'Input x has the wrong embedding dimensionality. Recieved: {x.shape[-1]}, expected: {self.embedding_dim}'
 
-        """Compute the value projection. This is a simple linear projection of each embedding.
-        values.shape = (N, embedding_dim)
+        """
+        We project the inputs.
+            {values, queries, keys}.shape = (256, 512, 100)
+
+         - values projection is a simple linear projection of each embedding.
+         - queries and key projection are also just linear projections.
+             - However, semantically these have a different meaning. These projections determine
+               how much relevant each embedding has with each other as the attention weights
+               are computed from these projections.
         """
         values = self.values_projection_layer(x)
-
-        """Compute the queries and keys, these are also simply linear projections of each embedding.
-        queries.shape, keys.shape = [N, embedding_dim]
-
-        The query and key projection determine how much relevance each embedding has with each other.
-        These linear projections directly affect the computation of the attention weights.
-        """
         queries = self.queries_projection_layer(x)
         keys = self.keys_projection_layer(x)
 
         """
-        Compute the attention weights. This is the attention paid to each embedding, by every other
-        embedding.
+        Now we compute the attention weights. This is the attention paid to each embedding, by every
+        other embedding within the same sequence.
+            attention_weights.shape = (256, 512, 512)
+            attention_weights[0][7].shape = (512,)
 
-        It is scaled by the square root of the embedding size to stabilise training as the dot product
-        can have large magnitudes. This is where the "scaled" in the name comes from.
+         - attention_weights[0][7] are the attentions paid to the 7th embedding in the first
+           sequence of the batch, by every other embedding in that sequence.
+         - attention_weights[0][7] is also normalised using the softmax, so it sums to 1.
 
-        attention_weights.shape = [N, N]
-        attention_weights[0] are the attentions paid to embedding 0, by every other embedding.
-        attention_weights[0] is also normalised using the softmax, so it sums to 1.
+         - The ` / self.embedding_dim ** 0.5` scaling is to stabilise training. As the dot product
+           can have large magnitudes.
 
-        The dot product here is what makes this block non-linear, and therefore removes the
-        requirement of an activation function.
+         - The dot product here is what makes this block non-linear, so an activation function is
+           not needed.
         """
         attention_weights = F.softmax(
-            (queries @ keys.T) / self.embedding_dim**0.5, dim=-1
+            (queries @ keys.transpose(-2, -1)) / self.embedding_dim**0.5, dim=-1
         )
 
         """
         Now we matrix multiply the attention weights with the values to get the output.
-        output.shape = [N, embedding_dim]
+            output.shape = (256, 512, 100)
 
         Each embedding in the output is simply the (attention) weighted sum of each (linearly projected)
-        input embedding.
+        input embedding within the same sequence.
 
-        E.g., If a x[17] "pays" a lot of attention to x[0], then output[0] will contain a large
-        portion of x[17].
+        E.g., If x[0][17] "pays" a lot of attention to x[0][0], then output[0][0] will contain a large
+        portion of x[0][17].
         """
         output = attention_weights @ values
 
@@ -100,37 +104,37 @@ class MultiHeadSelfAttentionBlock(nn.Module):
 
     def forward(self, x: torch.Tensor):
         """For the sake of explanation, let us assume that
-        x.shape = (N, embedding_dim) = (1024, 100)
+        x.shape = (batch_size, sequence_length, embedding_dim) = (256, 512, 100)
         self.num_heads = 5.
         """
         assert (
             x.shape[-1] == self.embedding_dim
         ), f'Input x has the wrong embedding dimensionality. Recieved: {x.shape[-1]}, expected: {self.embedding_dim}'
 
-        N, _ = x.shape
+        batch_size, sequence_length, _ = x.shape
 
         """
         We project the input, but then reshape and transpose the projections to create the multiple
         heads.
-        The shape of the projections are    (1024, 100)
-        After the .view                     (1024, 5, 20)
-        After the .transpose                (5, 1024, 20)
+        The shape of the projections are    (256, 512, 100)
+        After the .view                     (256, 512, 5, 20)
+        After the .transpose                (256, 5, 512, 20)
         This creates 5 heads.
         """
         values = (
             self.values_projection_layer(x)
-            .view(N, self.num_heads, self.head_dim)
-            .transpose(0, 1)
+            .view(batch_size, sequence_length, self.num_heads, self.head_dim)
+            .transpose(1, 2)
         )
         queries = (
             self.queries_projection_layer(x)
-            .view(N, self.num_heads, self.head_dim)
-            .transpose(0, 1)
+            .view(batch_size, sequence_length, self.num_heads, self.head_dim)
+            .transpose(1, 2)
         )
         keys = (
             self.keys_projection_layer(x)
-            .view(N, self.num_heads, self.head_dim)
-            .transpose(0, 1)
+            .view(batch_size, sequence_length, self.num_heads, self.head_dim)
+            .transpose(1, 2)
         )
 
         """
@@ -139,24 +143,26 @@ class MultiHeadSelfAttentionBlock(nn.Module):
          then (A @ B).shape = (b, m, p). The matmul is performed over that last 2 dims independently
          for each item in the batch.
          Following the example above
-            queries.shape = (5, 1024, 20)
-            keys.transpose(-2, -1).shape = (5, 20, 1024)
-            attention_weights.shape = (5, 1024, 1024)
+            queries.shape = (256, 5, 512, 20)
+            keys.transpose(-2, -1).shape = (256, 5, 20, 512)
+            attention_weights.shape = (256, 5, 512, 512)
          2. Scaled by embedding size.
-         3. Then a softmax is computed over the last dim. I.e., 5 * 1024 softmaxes are performed.
+         3. Then a softmax is computed over the last dim. I.e., 256 * 5 * 512 softmaxes are performed.
         """
         attention_weights = F.softmax(
-            (queries @ keys.transpose(-2, -1)) / self.embedding_dim**0.5, dim=-1
+            (queries @ keys.transpose(-2, -1)) / self.head_dim**0.5, dim=-1
         )
 
         """
         We now compute multiple self attentions.
-            attention_weights.shape = (5, 1024, 1024), values.shape = (5, 1024, 20)
-            (attention_weights @ values).shape = (5, 1024, 20)
-            output.shape = (1024, 100)
+            attention_weights.shape = (256, 5, 512, 512), values.shape = (256, 5, 512, 20)
+            (attention_weights @ values).shape = (256, 5, 512, 20)
+            output.shape = (256, 512, 100)
         """
         output = (
-            (attention_weights @ values).transpose(0, 1).reshape(N, self.embedding_dim)
+            (attention_weights @ values)
+            .transpose(1, 2)
+            .reshape(batch_size, sequence_length, self.embedding_dim)
         )
         output = self.output_projection_layer(output)
 
@@ -196,11 +202,13 @@ class TransformerEncoderLayer(nn.Module):
 
     def forward(self, x: torch.Tensor):
         # self attn block, with residual connection
-        x = self.multi_head_attn(x) + self.dropout(x)
+        attn_output = self.multi_head_attn(x)
+        x = x + self.dropout(attn_output)
         x = self.layer_norm_1(x)
 
         # feed forward block, with residual connection
-        x = self.feed_forward(x) + self.dropout(x)
+        ff_output = self.feed_forward(x)
+        x = x + self.dropout(ff_output)
         x = self.layer_norm_2(x)
 
         return x

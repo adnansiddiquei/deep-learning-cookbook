@@ -6,7 +6,6 @@ Prince, S.J.D. (2024). Understanding Deep Learning:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import logging
 
 
 class SelfAttentionBlock(nn.Module):
@@ -39,7 +38,6 @@ class SelfAttentionBlock(nn.Module):
         """
         queries = self.queries_projection_layer(x)
         keys = self.keys_projection_layer(x)
-        logging.info('{values, queries, keys}.shape = ' + f'{values.shape}')
 
         """
         Compute the attention weights. This is the attention paid to each embedding, by every other
@@ -58,7 +56,6 @@ class SelfAttentionBlock(nn.Module):
         attention_weights = F.softmax(
             (queries @ keys.T) / self.embedding_dim**0.5, dim=-1
         )
-        logging.info(f'attention_weights.shape = {attention_weights.shape}')
 
         """
         Now we matrix multiply the attention weights with the values to get the output.
@@ -71,7 +68,6 @@ class SelfAttentionBlock(nn.Module):
         portion of x[17].
         """
         output = attention_weights @ values
-        logging.info(f'output.shape = {output.shape}')
 
         return output
 
@@ -136,7 +132,6 @@ class MultiHeadSelfAttentionBlock(nn.Module):
             .view(N, self.num_heads, self.head_dim)
             .transpose(0, 1)
         )
-        logging.info('{values, queries, keys}.shape = ' + f'{values.shape}')
 
         """
         Quite a lot happening here:
@@ -153,7 +148,6 @@ class MultiHeadSelfAttentionBlock(nn.Module):
         attention_weights = F.softmax(
             (queries @ keys.transpose(-2, -1)) / self.embedding_dim**0.5, dim=-1
         )
-        logging.info(f'attention_weights.shape = {attention_weights.shape}')
 
         """
         We now compute multiple self attentions.
@@ -165,7 +159,6 @@ class MultiHeadSelfAttentionBlock(nn.Module):
             (attention_weights @ values).transpose(0, 1).reshape(N, self.embedding_dim)
         )
         output = self.output_projection_layer(output)
-        logging.info(f'output.shape = {output.shape}')
 
         return output
 

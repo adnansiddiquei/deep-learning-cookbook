@@ -55,7 +55,7 @@ with another residual connection.
 This is again fed into a `nn.LayerNorm` before producing the output.
 This layer is implemented in [`TransformerEncoderLayer`](../../dlc/transformers/modules.py).
 
-You can find a generic [`Bert`](../../dlc/transformers/modules.py) and
+You can find a generic [`Bert`](./models.py) model and the
 [`BertBase`](./models.py) model by following the links into [./models.py](./models.py).
 [`BertBase`](./models.py) is the architecture of the smaller 110M parameter model
 trained in the Bert paper [1].

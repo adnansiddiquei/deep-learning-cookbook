@@ -6,6 +6,12 @@ from dlc.transformers.modules import TransformerEncoderLayer
 
 
 class Bert(nn.Module):
+    """
+    Implementation of the BERT model for the masked language modelling (MLM) pretraining task.
+
+    For simplicity, this model ignores the next sentence prediction (NSP) pretraining task.
+    """
+
     def __init__(
         self,
         embedding_dim: int,

@@ -10,6 +10,7 @@ class Bert(nn.Module):
     Implementation of the BERT model for the masked language modelling (MLM) pretraining task.
 
     For simplicity, this model ignores the next sentence prediction (NSP) pretraining task.
+    This class is a constructor for a BERT model of any given size.
     """
 
     def __init__(
@@ -19,6 +20,15 @@ class Bert(nn.Module):
         vocab_size: int,
         max_sequence_length: int,
     ):
+        """
+        Initializes the BERT model.
+
+        Args:
+            embedding_dim (int): Dimension of the embeddings.
+            num_transformer_layers (int): Number of transformer layers.
+            vocab_size (int): Number of tokens in the dictionary for the model.
+            max_sequence_length (int): Maximum number of tokens in any input sequence.
+        """
         super().__init__()
 
         self.embedding_dim = embedding_dim
@@ -113,6 +123,21 @@ class BertBase(Bert):
     def __init__(self):
         embedding_dim = 768
         num_transformer_layers = 12
+        vocab_size = 3000
+        max_sequence_length = 512
+
+        super().__init__(
+            embedding_dim=embedding_dim,
+            num_transformer_layers=num_transformer_layers,
+            vocab_size=vocab_size,
+            max_sequence_length=max_sequence_length,
+        )
+
+
+class BertNano(Bert):
+    def __init__(self):
+        embedding_dim = 128
+        num_transformer_layers = 2
         vocab_size = 3000
         max_sequence_length = 512
 

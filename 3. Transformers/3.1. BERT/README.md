@@ -9,6 +9,7 @@ code up from scratch, a smaller implementation of BERT.
     - [Relevant Reading](#relevant-reading)
   - [Method](#method)
     - [Model Architecture](#model-architecture)
+    - [Model Training](#model-training)
   - [References](#references)
 
 ## Introduction
@@ -39,26 +40,19 @@ pays attention to every other token in the input (even if the token comes after 
 ![Transformer encoder block](../../assets/prince/Fig12.7.png)
 *Source: Figure 12.7 from [Understanding Deep Learning by Prince S.J.D., (2023)](https://udlbook.github.io/udlbook/)*
 
-The above figure details a single Transformer encoder layer.
-A batch $N$ input tokens, each of dimensionality $D$ are fed into a
-[`MultiHeadSelfAttentionBlock`](../../dlc/transformers/modules.py) with a residual
-connection (this simply means that the input is added onto the output of the self attention block).
-A `nn.LayerNorm` is performed, then fed into a feed forward network with a single hidden layer
-```python
-nn.Sequential(
-  nn.Linear(D, D*4),
-  nn.ReLU(),
-  nn.Linear(D*4, D),
-)
-```
-with another residual connection.
-This is again fed into a `nn.LayerNorm` before producing the output.
-This layer is implemented in [`TransformerEncoderLayer`](../../dlc/transformers/modules.py).
+The above figure details a single [`TransformerEncoderLayer`](../../dlc/transformers/modules.py).
+Click through the link to see the implementation details, where you can also see the implementation
+of the [`MultiHeadSelfAttentionBlock`](../../dlc/transformers/modules.py).
 
 You can find a generic [`Bert`](./models.py) model and the
 [`BertBase`](./models.py) model by following the links into [./models.py](./models.py).
 [`BertBase`](./models.py) is the architecture of the smaller 110M parameter model
 trained in the Bert paper [1].
+For this reproduction, we will be training much smaller implementation of Bert called
+[`BertNano`](./models.py) which is 1.2M parameters, such that we can train it without requiring
+a powerful GPU.
+
+### Model Training
 
 
 ## References

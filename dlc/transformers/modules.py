@@ -204,10 +204,14 @@ class TransformerEncoderLayer(nn.Module):
         self,
         embedding_dim: int,
         num_heads: int,
-        ff_hidden_dim: int,
+        ff_hidden_dim: int | None = None,
         dropout: float = 0.1,
     ):
         super().__init__()
+
+        if ff_hidden_dim is None:
+            # the 4x multiplier, as per orig. implementation, Sec 3.3., Vaswani, A. (2017).
+            ff_hidden_dim = embedding_dim * 4
 
         self.multi_head_attn = MultiHeadSelfAttentionBlock(
             embedding_dim=embedding_dim, num_heads=num_heads

@@ -49,9 +49,6 @@ class Bert(nn.Module):
                 TransformerEncoderLayer(
                     embedding_dim=embedding_dim,
                     num_heads=embedding_dim // 64,
-                    # the 4x multiplier, as per orig. implementation, Sec 3.3., Vaswani, A. (2017).
-                    ff_hidden_dim=embedding_dim * 4,
-                    dropout=0.1,
                 )
             )
 

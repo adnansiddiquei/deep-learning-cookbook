@@ -19,13 +19,14 @@ class SelfAttentionBlock(nn.Module):
         self.queries_projection_layer = nn.Linear(embedding_dim, embedding_dim)
         self.keys_projection_layer = nn.Linear(embedding_dim, embedding_dim)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, mask: torch.Tensor = None):
         """For the sake of explanation, let us assume that
         x.shape = (batch_size, sequence_length, embedding_dim) = (256, 512, 100)
         """
+        batch_size, sequence_length, embedding_dim = x.shape
         assert (
-            x.shape[-1] == self.embedding_dim
-        ), f'Input x has the wrong embedding dimensionality. Recieved: {x.shape[-1]}, expected: {self.embedding_dim}'
+            embedding_dim == self.embedding_dim
+        ), f'Input x has the wrong embedding dimensionality. Recieved: {embedding_dim}, expected: {self.embedding_dim}'
 
         """
         We project the inputs.
@@ -42,14 +43,13 @@ class SelfAttentionBlock(nn.Module):
         keys = self.keys_projection_layer(x)
 
         """
-        Now we compute the attention weights. This is the attention paid to each embedding, by every
+        Now we compute the attention scores. This is the attention paid to each embedding, by every
         other embedding within the same sequence.
-            attention_weights.shape = (256, 512, 512)
-            attention_weights[0][7].shape = (512,)
+            attention_scores.shape = (256, 512, 512)
+            attention_scores[0][7].shape = (512,)
 
-         - attention_weights[0][7] are the attentions paid to the 7th embedding in the first
+         - attention_scores[0][7] are the attentions paid to the 7th embedding in the first
            sequence of the batch, by every other embedding in that sequence.
-         - attention_weights[0][7] is also normalised using the softmax, so it sums to 1.
 
          - The ` / self.embedding_dim ** 0.5` scaling is to stabilise training. As the dot product
            can have large magnitudes.
@@ -57,9 +57,21 @@ class SelfAttentionBlock(nn.Module):
          - The dot product here is what makes this block non-linear, so an activation function is
            not needed.
         """
-        attention_weights = F.softmax(
-            (queries @ keys.transpose(-2, -1)) / self.embedding_dim**0.5, dim=-1
-        )
+        attention_scores = (queries @ keys.transpose(-2, -1)) / self.embedding_dim**0.5
+
+        """
+        Now we apply a mask, if there is one, and then compute the attention_weights using a
+        softmax.
+
+        The mask is a tensor of the same shape as the input, and anywhere in the mask where it is
+        `0`, we don't want any attention paid to these tokens. By setting them to '-inf', when
+        the softmax occurs, these tokens will have 0 attention paid to them.
+        """
+        if mask is not None:
+            assert mask.shape == (batch_size, sequence_length, sequence_length)
+            attention_scores = attention_scores.masked_fill(mask == 0, float('-inf'))
+
+        attention_weights = F.softmax(attention_scores, dim=-1)
 
         """
         Now we matrix multiply the attention weights with the values to get the output.
@@ -102,16 +114,15 @@ class MultiHeadSelfAttentionBlock(nn.Module):
 
         self.output_projection_layer = nn.Linear(self.embedding_dim, self.embedding_dim)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, mask: torch.Tensor = None):
         """For the sake of explanation, let us assume that
         x.shape = (batch_size, sequence_length, embedding_dim) = (256, 512, 100)
         self.num_heads = 5.
         """
+        batch_size, sequence_length, embedding_dim = x.shape
         assert (
-            x.shape[-1] == self.embedding_dim
-        ), f'Input x has the wrong embedding dimensionality. Recieved: {x.shape[-1]}, expected: {self.embedding_dim}'
-
-        batch_size, sequence_length, _ = x.shape
+            embedding_dim == self.embedding_dim
+        ), f'Input x has the wrong embedding dimensionality. Recieved: {embedding_dim}, expected: {self.embedding_dim}'
 
         """
         We project the input, but then reshape and transpose the projections to create the multiple
@@ -145,13 +156,25 @@ class MultiHeadSelfAttentionBlock(nn.Module):
          Following the example above
             queries.shape = (256, 5, 512, 20)
             keys.transpose(-2, -1).shape = (256, 5, 20, 512)
-            attention_weights.shape = (256, 5, 512, 512)
-         2. Scaled by embedding size.
-         3. Then a softmax is computed over the last dim. I.e., 256 * 5 * 512 softmaxes are performed.
+            attention_scores.shape = (256, 5, 512, 512)
+         2. Scaled by head_dim.
         """
-        attention_weights = F.softmax(
-            (queries @ keys.transpose(-2, -1)) / self.head_dim**0.5, dim=-1
-        )
+        attention_scores = (queries @ keys.transpose(-2, -1)) / self.head_dim**0.5
+
+        """
+        Now we apply a mask, and compute the softmax.
+
+        Note the unsqueeze along the 1st axis. This allows the mask to be broadcasted to every
+        head identically.
+        """
+        if mask is not None:
+            assert mask.shape == (batch_size, sequence_length, sequence_length)
+            mask = mask.unsqueeze(
+                1
+            )  # this will yield shape (batch_size, 1, sequence_length, sequence_length)
+            attention_scores = attention_scores.masked_fill(mask == 0, float('-inf'))
+
+        attention_weights = F.softmax(attention_scores, dim=-1)
 
         """
         We now compute multiple self attentions.

@@ -5,45 +5,57 @@ from dlc.transformers.modules import (
     TransformerEncoderLayer,
 )
 
+batch_size = 128
+sequence_length = 256
+embedding_dim = 100
+num_heads = 5
+
 
 def test_self_attention_block(device):
-    embedding_dim = 100
-    x = torch.randn(256, 512, embedding_dim).to(device)
+    x = torch.randn(batch_size, sequence_length, embedding_dim).to(device)
     self_attention = SelfAttentionBlock(embedding_dim).to(device)
-
-    with torch.no_grad():
-        output = self_attention(x)
-
-    assert output.shape == (
-        256,
-        512,
-        100,
-    ), f'Expected output shape (256, 512, 100), but got {output.shape}'
-
-
-def test_multi_head_self_attention_block(device):
-    embedding_dim = 100
-    num_heads = 5
-    x = torch.randn(256, 512, embedding_dim).to(device)
-    multi_head_attention = MultiHeadSelfAttentionBlock(embedding_dim, num_heads).to(
+    mask = torch.randint(0, 2, (batch_size, sequence_length, sequence_length)).to(
         device
     )
 
     with torch.no_grad():
-        output = multi_head_attention(x)
+        output = self_attention(x, mask)
 
-    assert output.shape == (
-        256,
-        512,
-        100,
-    ), f'Expected output shape (256, 512, 100), but got {output.shape}'
+    assert (
+        output.shape
+        == (
+            batch_size,
+            sequence_length,
+            embedding_dim,
+        )
+    ), f'Expected output shape ({batch_size}, {sequence_length}, {embedding_dim}), but got {output.shape}'
+
+
+def test_multi_head_self_attention_block(device):
+    x = torch.randn(batch_size, sequence_length, embedding_dim).to(device)
+    multi_head_attention = MultiHeadSelfAttentionBlock(embedding_dim, num_heads).to(
+        device
+    )
+    mask = torch.randint(0, 2, (batch_size, sequence_length, sequence_length)).to(
+        device
+    )
+
+    with torch.no_grad():
+        output = multi_head_attention(x, mask)
+
+    assert (
+        output.shape
+        == (
+            batch_size,
+            sequence_length,
+            embedding_dim,
+        )
+    ), f'Expected output shape ({batch_size}, {sequence_length}, {embedding_dim}), but got {output.shape}'
 
 
 def test_transformer_encoder_layer(device):
-    embedding_dim = 100
-    num_heads = 5
-    ff_hidden_dim = 200
-    x = torch.randn(256, 512, embedding_dim).to(device)
+    ff_hidden_dim = 128
+    x = torch.randn(batch_size, sequence_length, embedding_dim).to(device)
     transformer_encoder = TransformerEncoderLayer(
         embedding_dim, num_heads, ff_hidden_dim
     ).to(device)
@@ -51,8 +63,11 @@ def test_transformer_encoder_layer(device):
     with torch.no_grad():
         output = transformer_encoder(x)
 
-    assert output.shape == (
-        256,
-        512,
-        100,
-    ), f'Expected output shape (256, 512, 100), but got {output.shape}'
+    assert (
+        output.shape
+        == (
+            batch_size,
+            sequence_length,
+            embedding_dim,
+        )
+    ), f'Expected output shape ({batch_size}, {sequence_length}, {embedding_dim}), but got {output.shape}'

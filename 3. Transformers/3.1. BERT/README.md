@@ -36,11 +36,8 @@ as originally described in Vaswani, A. (2017) [3]. and explained in Prince S.J.D
 It is bidirectional becuase the model has both left and right context, every single token in the input
 pays attention to every other token in the input (even if the token comes after it in the sentence).
 
-<figure style="text-align: center;">
-  <img src="../../assets/prince/Fig12.7.png" alt="Transformer encoder block" style="width: 80%;">
-  <figcaption>Transformer encoder layer. Source: Fig. 12.7 from
-    <a href="https://udlbook.github.io/udlbook/">Understanding Deep Learning by Prince S.J.D., (2023) [2]</a></figcaption>
-</figure>
+![Transformer encoder block](../../assets/prince/Fig12.7.png)
+*Source: Figure 12.7 from [Understanding Deep Learning by Prince S.J.D., (2023)](https://udlbook.github.io/udlbook/)*
 
 The above figure details a single Transformer encoder layer.
 A batch $N$ input tokens, each of dimensionality $D$ are fed into a

@@ -6,6 +6,11 @@ import os
 import pyarrow.parquet as pq
 import unicodedata
 from dlc.utils import download
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s :: %(levelname)s :: %(message)s'
+)
 
 """
 First we download the data. This is part of the wikimedia/wikipedia dataset from Huggingface.
@@ -20,7 +25,7 @@ def download_data():
         os.mkdir('data')
 
     if os.path.exists('data/train-00007-of-00041.parquet'):
-        print('Data already downloaded.')
+        logging.info('Data already downloaded.')
         return
 
     url = 'https://huggingface.co/datasets/wikimedia/wikipedia/resolve/main/20231101.en/train-00007-of-00041.parquet'
@@ -53,6 +58,7 @@ def preprocess():
 
     with pq.ParquetFile(input_file) as reader:
         schema = reader.schema_arrow
+        logging.info(f'\n\nSchema: \n{schema}\n\nMetadata: \n{reader.metadata}\n')
 
         with pq.ParquetWriter(output_file, schema) as writer:
             for i in range(reader.num_row_groups):

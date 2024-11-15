@@ -36,9 +36,10 @@ def download(url: str, output_path: str):
 
         total = int(response.headers.get('content-length', 0))
 
-        with open(output_path, 'wb') as file, tqdm(
-            total=total, unit_scale=True, unit='B', desc=output_path
-        ) as pbar:
+        with (
+            open(output_path, 'wb') as file,
+            tqdm(total=total, unit_scale=True, unit='B', desc=output_path) as pbar,
+        ):
             # Iterate over response, in chunks of 8kB and save to the output file
             for chunk in response.iter_bytes(chunk_size=1024 * 8):
                 file.write(chunk)

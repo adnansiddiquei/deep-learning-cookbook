@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from dlc.transformers.modules import TransformerEncoderLayer
+from dlc.transformer.modules import TransformerEncoderLayer
 
 
 class Bert(nn.Module):

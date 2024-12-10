@@ -1,5 +1,5 @@
 import torch
-from dlc.transformers.modules import (
+from dlc.transformer.modules import (
     SelfAttentionBlock,
     MultiHeadSelfAttentionBlock,
     TransformerEncoderLayer,
